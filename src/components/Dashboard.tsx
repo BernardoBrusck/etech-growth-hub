@@ -17,10 +17,17 @@ import {
   ArrowDownRight,
   Phone,
   Mail,
-  Calendar
+  Calendar,
+  BarChart3,
+  List,
+  Grid
 } from "lucide-react";
+import { Header } from "./Header";
+import { ChartsSection } from "./ChartsSection";
+import { ActivityFeed } from "./ActivityFeed";
 import { LeadModal } from "./LeadModal";
 import { LeadsTable } from "./LeadsTable";
+import { KanbanView } from "./KanbanView";
 
 interface Lead {
   id: string;
@@ -33,11 +40,13 @@ interface Lead {
   value: number;
   responsible: string;
   lastUpdate: string;
+  daysInStage: number;
 }
 
 export function Dashboard() {
   const [showLeadModal, setShowLeadModal] = useState(false);
-  const [activeView, setActiveView] = useState<"dashboard" | "leads">("dashboard");
+  const [activeView, setActiveView] = useState<"dashboard" | "leads" | "kanban">("dashboard");
+  const [leadsView, setLeadsView] = useState<"table" | "kanban">("table");
   const [leads, setLeads] = useState<Lead[]>([
     {
       id: "1",
@@ -49,7 +58,8 @@ export function Dashboard() {
       stage: "negociacao",
       value: 15000,
       responsible: "Ana Costa",
-      lastUpdate: "2 horas atrás"
+      lastUpdate: "2 horas atrás",
+      daysInStage: 5
     },
     {
       id: "2",
@@ -61,7 +71,8 @@ export function Dashboard() {
       stage: "diagnostico",
       value: 25000,
       responsible: "Carlos Lima",
-      lastUpdate: "1 dia atrás"
+      lastUpdate: "1 dia atrás",
+      daysInStage: 12
     },
     {
       id: "3",
@@ -70,10 +81,37 @@ export function Dashboard() {
       email: "pedro@startupx.com",
       phone: "(11) 7777-7777",
       status: "fechado",
-      stage: "fechamento",
+      stage: "c7",
       value: 30000,
       responsible: "Ana Costa",
-      lastUpdate: "3 dias atrás"
+      lastUpdate: "3 dias atrás",
+      daysInStage: 2
+    },
+    {
+      id: "4",
+      name: "Fernanda Costa",
+      company: "Inovação Tech",
+      email: "fernanda@inovacaotech.com",
+      phone: "(11) 6666-6666",
+      status: "novo",
+      stage: "prospeccao",
+      value: 18000,
+      responsible: "Beatriz Santos",
+      lastUpdate: "1 hora atrás",
+      daysInStage: 1
+    },
+    {
+      id: "5",
+      name: "Roberto Lima",
+      company: "Future Systems",
+      email: "roberto@futuresystems.com",
+      phone: "(11) 5555-5555",
+      status: "contato",
+      stage: "diagnostico",
+      value: 22000,
+      responsible: "Rafael Oliveira",
+      lastUpdate: "6 horas atrás",
+      daysInStage: 8
     }
   ]);
 
@@ -84,11 +122,12 @@ export function Dashboard() {
     goalProgress: 78.2
   };
 
-  const addLead = (leadData: Omit<Lead, "id" | "lastUpdate">) => {
+  const addLead = (leadData: Omit<Lead, "id" | "lastUpdate" | "daysInStage">) => {
     const newLead: Lead = {
       ...leadData,
       id: Date.now().toString(),
-      lastUpdate: "Agora"
+      lastUpdate: "Agora",
+      daysInStage: 0
     };
     setLeads([newLead, ...leads]);
   };
@@ -96,26 +135,7 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-dashboard-bg">
       {/* Header */}
-      <header className="bg-card border-b border-border shadow-card sticky top-0 z-50">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-primary">ETECH Jr. CRM</h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon">
-              <Search className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Avatar>
-              <AvatarImage src="" />
-              <AvatarFallback>AC</AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-      </header>
+      <Header onNewLead={() => setShowLeadModal(true)} />
 
       <div className="flex">
         {/* Sidebar */}
@@ -137,6 +157,14 @@ export function Dashboard() {
               <Users className="mr-2 h-4 w-4" />
               Leads
             </Button>
+            <Button 
+              variant={activeView === "kanban" ? "default" : "ghost"} 
+              className="w-full justify-start"
+              onClick={() => setActiveView("kanban")}
+            >
+              <Grid className="mr-2 h-4 w-4" />
+              Pipeline
+            </Button>
             <Button variant="ghost" className="w-full justify-start">
               <Target className="mr-2 h-4 w-4" />
               Metas
@@ -144,6 +172,10 @@ export function Dashboard() {
             <Button variant="ghost" className="w-full justify-start">
               <DollarSign className="mr-2 h-4 w-4" />
               Financeiro
+            </Button>
+            <Button variant="ghost" className="w-full justify-start">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Relatórios
             </Button>
             <Button variant="ghost" className="w-full justify-start">
               <Settings className="mr-2 h-4 w-4" />
@@ -162,10 +194,6 @@ export function Dashboard() {
                   <h2 className="text-3xl font-bold text-foreground">Dashboard</h2>
                   <p className="text-muted-foreground">Visão geral das suas vendas e metas</p>
                 </div>
-                <Button onClick={() => setShowLeadModal(true)} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Novo Lead
-                </Button>
               </div>
 
               {/* Metrics Cards */}
@@ -227,58 +255,52 @@ export function Dashboard() {
                 </Card>
               </div>
 
-              {/* Recent Leads */}
-              <Card className="shadow-card">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Leads Recentes</CardTitle>
-                      <CardDescription>Últimas atualizações nos seus leads</CardDescription>
-                    </div>
-                    <Button variant="outline" onClick={() => setActiveView("leads")}>
-                      Ver Todos
+              {/* Charts Section */}
+              <ChartsSection />
+
+              {/* Activity Feed */}
+              <ActivityFeed />
+            </div>
+          ) : activeView === "kanban" ? (
+            <KanbanView leads={leads} setLeads={setLeads} onNewLead={() => setShowLeadModal(true)} />
+          ) : (
+            <div className="space-y-6 animate-fade-in">
+              {/* Leads Header with View Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold text-foreground">Leads</h2>
+                  <p className="text-muted-foreground">Gerencie todos os seus leads e oportunidades</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border border-border rounded-lg p-1">
+                    <Button
+                      variant={leadsView === "table" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setLeadsView("table")}
+                      className="h-8"
+                    >
+                      <List className="h-4 w-4 mr-1" />
+                      Lista
+                    </Button>
+                    <Button
+                      variant={leadsView === "kanban" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setLeadsView("kanban")}
+                      className="h-8"
+                    >
+                      <Grid className="h-4 w-4 mr-1" />
+                      Kanban
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {leads.slice(0, 3).map((lead) => (
-                      <div key={lead.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarFallback>{lead.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{lead.name}</p>
-                            <p className="text-sm text-muted-foreground">{lead.company}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <Badge variant={
-                            lead.status === "fechado" ? "default" :
-                            lead.status === "negociacao" ? "secondary" :
-                            "outline"
-                          }>
-                            {lead.status}
-                          </Badge>
-                          <p className="text-sm font-medium">R$ {lead.value.toLocaleString()}</p>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon">
-                              <Phone className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon">
-                              <Mail className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+
+              {leadsView === "table" ? (
+                <LeadsTable leads={leads} setLeads={setLeads} onNewLead={() => setShowLeadModal(true)} />
+              ) : (
+                <KanbanView leads={leads} setLeads={setLeads} onNewLead={() => setShowLeadModal(true)} />
+              )}
             </div>
-          ) : (
-            <LeadsTable leads={leads} setLeads={setLeads} onNewLead={() => setShowLeadModal(true)} />
           )}
         </main>
       </div>

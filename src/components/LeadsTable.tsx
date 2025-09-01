@@ -64,6 +64,7 @@ interface Lead {
   value: number;
   responsible: string;
   lastUpdate: string;
+  daysInStage: number;
 }
 
 interface LeadsTableProps {
@@ -109,7 +110,8 @@ export function LeadsTable({ leads, setLeads, onNewLead }: LeadsTableProps) {
           ...lead,
           stage: nextStage as Lead["stage"],
           lastUpdate: "Agora",
-          status: nextStage === "fechamento" ? "fechado" as const : lead.status
+          daysInStage: 0,
+          status: nextStage === "c7" ? "fechado" as const : lead.status
         };
       }
       return lead;
@@ -145,19 +147,7 @@ export function LeadsTable({ leads, setLeads, onNewLead }: LeadsTableProps) {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Leads</h2>
-          <p className="text-muted-foreground">Gerencie todos os seus leads e oportunidades</p>
-        </div>
-        <Button onClick={onNewLead} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Lead
-        </Button>
-      </div>
-
+    <div className="space-y-6">
       {/* Filters */}
       <Card className="shadow-card">
         <CardHeader>
