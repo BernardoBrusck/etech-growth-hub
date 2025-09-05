@@ -1,1 +1,13 @@
 project_id = "whubdhmrhtxgtcksuynn"
+
+[functions.leads-api]
+verify_jwt = false
+
+[functions.deals-api]
+verify_jwt = false
+
+[functions.analytics-api]
+verify_jwt = false
+
+[functions.financial-api]
+verify_jwt = false
