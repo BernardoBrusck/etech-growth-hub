@@ -56,6 +56,7 @@ interface Lead {
 export function Dashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [activeView, setActiveView] = useState<"dashboard" | "leads" | "kanban" | "goals" | "financial" | "reports" | "settings" | "profile" | "members" | "calendar">("dashboard");
   const [leadsView, setLeadsView] = useState<"table" | "kanban">("table");
@@ -240,7 +241,11 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-dashboard-bg pb-16 md:pb-0">
-      <Header onNewLead={() => setShowLeadModal(true)} />
+      <Header 
+        onNewLead={() => setShowLeadModal(true)} 
+        onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        onLogout={() => setIsLoggedIn(false)}
+      />
       
       <div className="flex">
         <aside className="hidden md:block w-64 bg-dashboard-sidebar border-r border-border min-h-[calc(100vh-80px)] p-4">
@@ -280,7 +285,7 @@ export function Dashboard() {
         </main>
       </div>
 
-      <MobileNavigation activeView={activeView} onViewChange={setActiveView} />
+      <MobileNavigation activeView={activeView} onViewChange={(view) => setActiveView(view as typeof activeView)} />
 
       <LeadModal 
         open={showLeadModal} 
