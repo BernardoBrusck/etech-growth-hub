@@ -24,9 +24,9 @@ export function Login({ onLogin }: LoginProps) {
 
   // Demo users data
   const demoUsers = [
-    { email: "admin@etechjr.com", password: "admin123", role: "Admin", icon: UserCheck },
-    { email: "manager@etechjr.com", password: "manager123", role: "Gerente", icon: Users },
-    { email: "user@etechjr.com", password: "user123", role: "Vendedor", icon: User },
+    { role: "Admin", type: "admin" as const, icon: UserCheck },
+    { role: "Gerente", type: "manager" as const, icon: Users },
+    { role: "Vendedor", type: "user" as const, icon: User },
   ];
 
   // Check for existing session on mount
@@ -75,76 +75,21 @@ export function Login({ onLogin }: LoginProps) {
     return () => subscription.unsubscribe();
   }, [onLogin]);
 
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: demoEmail,
-        password: demoPassword,
-      });
+  const handleDemoLogin = (role: 'admin' | 'manager' | 'user') => {
+    const demoUsers = {
+      admin: { name: "Administrador Demo", email: "admin@demo.com", role: "admin" },
+      manager: { name: "Gerente Demo", email: "manager@demo.com", role: "manager" },
+      user: { name: "Vendedor Demo", email: "user@demo.com", role: "user" }
+    };
 
-      if (error) {
-        // If user doesn't exist, create them
-        if (error.message.includes('Invalid login credentials')) {
-          await createDemoUser(demoEmail, demoPassword);
-          return;
-        }
-        throw error;
-      }
-
-      toast({
-        title: "Login realizado!",
-        description: "Bem-vindo ao sistema!",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erro no login",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
+    onLogin(demoUsers[role]);
+    
+    toast({
+      title: "Acesso Demo",
+      description: `Logado como ${demoUsers[role].name}`,
+    });
   };
 
-  const createDemoUser = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: getDemoUserName(email),
-          },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Usuário demo criado!",
-        description: "Fazendo login automaticamente...",
-      });
-
-      // Auto login after creation
-      setTimeout(() => {
-        handleDemoLogin(email, password);
-      }, 1000);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao criar usuário demo",
-        description: error.message,
-      });
-    }
-  };
-
-  const getDemoUserName = (email: string) => {
-    if (email.includes('admin')) return 'Administrador do Sistema';
-    if (email.includes('manager')) return 'Gerente de Vendas';
-    return 'Vendedor';
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,16 +170,16 @@ export function Login({ onLogin }: LoginProps) {
                   const IconComponent = user.icon;
                   return (
                     <Button 
-                      key={user.email}
+                      key={user.type}
                       type="button" 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleDemoLogin(user.email, user.password)}
+                      onClick={() => handleDemoLogin(user.type)}
                       disabled={loading}
                       className="w-full justify-start text-xs border-slate-600 bg-slate-700/50 text-slate-300 hover:bg-slate-600 transition-colors"
                     >
                       <IconComponent className="mr-2 h-3 w-3" />
-                      {user.role} ({user.email})
+                      {user.role} (Demo)
                     </Button>
                   );
                 })}
