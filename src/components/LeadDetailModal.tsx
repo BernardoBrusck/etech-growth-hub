@@ -39,11 +39,12 @@ interface Lead {
   company: string;
   email: string;
   phone: string;
-  status: "novo" | "contato" | "negociacao" | "fechado";
+  status: "novo" | "contato" | "negociacao" | "fechado" | "perdido";
   stage: "prospeccao" | "diagnostico" | "negociacao" | "fechamento" | "c7";
   value: number;
   responsible: string;
   lastUpdate: string;
+  daysInStage: number;
 }
 
 interface Interaction {

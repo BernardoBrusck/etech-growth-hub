@@ -59,7 +59,7 @@ interface Lead {
   company: string;
   email: string;
   phone: string;
-  status: "novo" | "contato" | "negociacao" | "fechado";
+  status: "novo" | "contato" | "negociacao" | "fechado" | "perdido";
   stage: "prospeccao" | "diagnostico" | "negociacao" | "fechamento" | "c7";
   value: number;
   responsible: string;
@@ -178,6 +178,7 @@ export function LeadsTable({ leads, setLeads, onNewLead }: LeadsTableProps) {
                 <SelectItem value="contato">Em Contato</SelectItem>
                 <SelectItem value="negociacao">Negociação</SelectItem>
                 <SelectItem value="fechado">Fechado</SelectItem>
+                <SelectItem value="perdido">Perdido</SelectItem>
               </SelectContent>
             </Select>
 
