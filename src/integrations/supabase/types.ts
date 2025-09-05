@@ -14,16 +14,487 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activities: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          deal_id: string | null
+          description: string | null
+          id: string
+          is_completed: boolean | null
+          lead_id: string | null
+          scheduled_at: string | null
+          title: string
+          type: Database["public"]["Enums"]["activity_type"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          lead_id?: string | null
+          scheduled_at?: string | null
+          title: string
+          type: Database["public"]["Enums"]["activity_type"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          lead_id?: string | null
+          scheduled_at?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["activity_type"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_events: {
+        Row: {
+          activity_id: string | null
+          created_at: string | null
+          deal_id: string | null
+          description: string | null
+          end_date: string
+          id: string
+          lead_id: string | null
+          start_date: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          lead_id?: string | null
+          start_date: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          lead_id?: string | null
+          start_date?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          address: string | null
+          city: string | null
+          cnpj: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          state: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      deals: {
+        Row: {
+          actual_close_date: string | null
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          expected_close_date: string | null
+          id: string
+          lead_id: string | null
+          probability: number | null
+          responsible_id: string | null
+          status: Database["public"]["Enums"]["deal_status"] | null
+          title: string
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          actual_close_date?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          expected_close_date?: string | null
+          id?: string
+          lead_id?: string | null
+          probability?: number | null
+          responsible_id?: string | null
+          status?: Database["public"]["Enums"]["deal_status"] | null
+          title: string
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          actual_close_date?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          expected_close_date?: string | null
+          id?: string
+          lead_id?: string | null
+          probability?: number | null
+          responsible_id?: string | null
+          status?: Database["public"]["Enums"]["deal_status"] | null
+          title?: string
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_transactions: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string | null
+          deal_id: string | null
+          description: string | null
+          id: string
+          title: string
+          transaction_date: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          description?: string | null
+          id?: string
+          title: string
+          transaction_date?: string | null
+          type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string | null
+          deal_id?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          transaction_date?: string | null
+          type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string | null
+          current_value: number | null
+          description: string | null
+          id: string
+          target_date: string | null
+          target_value: number
+          team_goal: boolean | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          target_date?: string | null
+          target_value: number
+          team_goal?: boolean | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          target_date?: string | null
+          target_value?: number
+          team_goal?: boolean | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          days_in_stage: number | null
+          email: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          responsible_id: string | null
+          source: string | null
+          stage: Database["public"]["Enums"]["lead_stage"] | null
+          status: Database["public"]["Enums"]["lead_status"] | null
+          updated_at: string | null
+          value: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          days_in_stage?: number | null
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          responsible_id?: string | null
+          source?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"] | null
+          status?: Database["public"]["Enums"]["lead_status"] | null
+          updated_at?: string | null
+          value?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          days_in_stage?: number | null
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          responsible_id?: string | null
+          source?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"] | null
+          status?: Database["public"]["Enums"]["lead_status"] | null
+          updated_at?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          department: string | null
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          department?: string | null
+          email: string
+          full_name: string
+          id: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      activity_type: "call" | "email" | "meeting" | "task" | "note"
+      deal_status: "open" | "won" | "lost" | "cancelled"
+      lead_stage:
+        | "prospeccao"
+        | "diagnostico"
+        | "negociacao"
+        | "fechamento"
+        | "c7"
+      lead_status: "novo" | "contato" | "negociacao" | "fechado" | "perdido"
+      transaction_type: "income" | "expense"
+      user_role: "admin" | "manager" | "sales" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +621,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_type: ["call", "email", "meeting", "task", "note"],
+      deal_status: ["open", "won", "lost", "cancelled"],
+      lead_stage: [
+        "prospeccao",
+        "diagnostico",
+        "negociacao",
+        "fechamento",
+        "c7",
+      ],
+      lead_status: ["novo", "contato", "negociacao", "fechado", "perdido"],
+      transaction_type: ["income", "expense"],
+      user_role: ["admin", "manager", "sales", "user"],
+    },
   },
 } as const
