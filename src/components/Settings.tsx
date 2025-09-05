@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,129 +6,163 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Settings as SettingsIcon, 
-  User, 
-  Bell, 
-  Shield, 
-  Palette, 
-  Database,
-  Save,
-  Upload,
-  Download
-} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Settings as SettingsIcon, Bell, Shield, Database, Users, Moon, Sun } from "lucide-react";
 
 export function Settings() {
-  const { toast } = useToast();
   const [settings, setSettings] = useState({
-    // General Settings
-    companyName: "ETECH Jr.",
-    timezone: "America/Sao_Paulo",
-    language: "pt-BR",
-    currency: "BRL",
-    
-    // Notifications
-    emailNotifications: true,
-    pushNotifications: true,
-    weeklyReports: true,
-    leadAlerts: true,
-    goalAlerts: false,
-    
-    // Privacy & Security
-    twoFactorAuth: false,
-    sessionTimeout: "30",
-    dataRetention: "365",
-    
-    // System
+    notifications: {
+      email: true,
+      push: false,
+      lead_updates: true,
+      deal_closed: true,
+    },
     theme: "system",
-    autoSave: true,
-    backupFrequency: "daily"
+    language: "pt-BR",
+    timezone: "America/Sao_Paulo",
   });
+  
+  const [profile, setProfile] = useState({
+    role: "",
+    full_name: "",
+    email: ""
+  });
+  
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleSave = (section: string) => {
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      
+      setProfile(data);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSettings = () => {
     toast({
       title: "Configurações salvas!",
-      description: `As configurações de ${section} foram atualizadas com sucesso.`,
+      description: "Suas preferências foram atualizadas com sucesso.",
     });
   };
 
-  const handleExportData = () => {
-    toast({
-      title: "Exportação iniciada",
-      description: "Seus dados estão sendo preparados para download.",
-    });
+  const handleChangePassword = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) return;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email enviado!",
+        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível enviar o email de redefinição.",
+      });
+    }
   };
 
-  const handleImportData = () => {
-    toast({
-      title: "Importação iniciada", 
-      description: "Seus dados estão sendo processados.",
-    });
-  };
+  if (loading) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-300 rounded w-1/4 mb-6"></div>
+          <div className="h-64 bg-gray-300 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-foreground">Configurações</h2>
           <p className="text-muted-foreground">Gerencie suas preferências e configurações do sistema</p>
         </div>
+        <Badge variant="outline" className="flex items-center gap-2">
+          <Shield className="h-4 w-4" />
+          {profile.role === 'admin' ? 'Administrador' : 'Usuário'}
+        </Badge>
       </div>
 
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general">Geral</TabsTrigger>
           <TabsTrigger value="notifications">Notificações</TabsTrigger>
           <TabsTrigger value="security">Segurança</TabsTrigger>
-          <TabsTrigger value="system">Sistema</TabsTrigger>
-          <TabsTrigger value="data">Dados</TabsTrigger>
+          <TabsTrigger value="advanced">Avançado</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-6">
-          <Card className="shadow-metric">
+        <TabsContent value="general" className="space-y-4">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <SettingsIcon className="h-5 w-5" />
                 Configurações Gerais
               </CardTitle>
               <CardDescription>
-                Configurações básicas da sua organização
+                Configure suas preferências básicas do sistema
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">Nome da Empresa</Label>
-                  <Input
-                    id="companyName"
-                    value={settings.companyName}
-                    onChange={(e) => setSettings({ ...settings, companyName: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Fuso Horário</Label>
-                  <Select value={settings.timezone} onValueChange={(value) => setSettings({ ...settings, timezone: value })}>
+                  <Label htmlFor="theme">Tema</Label>
+                  <Select value={settings.theme} onValueChange={(value) => setSettings({ ...settings, theme: value })}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione o tema" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="America/Sao_Paulo">São Paulo (UTC-3)</SelectItem>
-                      <SelectItem value="America/New_York">Nova York (UTC-5)</SelectItem>
-                      <SelectItem value="Europe/London">Londres (UTC+0)</SelectItem>
+                      <SelectItem value="light">
+                        <div className="flex items-center gap-2">
+                          <Sun className="h-4 w-4" />
+                          Claro
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="dark">
+                        <div className="flex items-center gap-2">
+                          <Moon className="h-4 w-4" />
+                          Escuro
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="system">Sistema</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="language">Idioma</Label>
                   <Select value={settings.language} onValueChange={(value) => setSettings({ ...settings, language: value })}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione o idioma" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
@@ -137,345 +171,235 @@ export function Settings() {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="currency">Moeda</Label>
-                  <Select value={settings.currency} onValueChange={(value) => setSettings({ ...settings, currency: value })}>
+                  <Label htmlFor="timezone">Fuso Horário</Label>
+                  <Select value={settings.timezone} onValueChange={(value) => setSettings({ ...settings, timezone: value })}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione o fuso horário" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="BRL">Real (R$)</SelectItem>
-                      <SelectItem value="USD">Dólar ($)</SelectItem>
-                      <SelectItem value="EUR">Euro (€)</SelectItem>
+                      <SelectItem value="America/Sao_Paulo">São Paulo (GMT-3)</SelectItem>
+                      <SelectItem value="America/New_York">New York (GMT-4)</SelectItem>
+                      <SelectItem value="Europe/London">London (GMT+0)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={() => handleSave("gerais")} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Salvar Alterações
-                </Button>
-              </div>
+              <Button onClick={handleSaveSettings}>
+                Salvar Configurações
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="notifications" className="space-y-6">
-          <Card className="shadow-metric">
+        <TabsContent value="notifications" className="space-y-4">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
-                Preferências de Notificação
+                Notificações
               </CardTitle>
               <CardDescription>
-                Configure como e quando receber notificações
+                Configure quando e como receber notificações
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Notificações por Email</Label>
-                    <p className="text-sm text-muted-foreground">Receber notificações importantes por email</p>
+                    <Label className="text-base">Notificações por Email</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Receba atualizações importantes por email
+                    </div>
                   </div>
                   <Switch
-                    checked={settings.emailNotifications}
-                    onCheckedChange={(checked) => setSettings({ ...settings, emailNotifications: checked })}
+                    checked={settings.notifications.email}
+                    onCheckedChange={(checked) => 
+                      setSettings({
+                        ...settings,
+                        notifications: { ...settings.notifications, email: checked }
+                      })
+                    }
                   />
                 </div>
 
-                <Separator />
-
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Notificações Push</Label>
-                    <p className="text-sm text-muted-foreground">Receber notificações no navegador</p>
+                    <Label className="text-base">Notificações Push</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Receba notificações em tempo real no navegador
+                    </div>
                   </div>
                   <Switch
-                    checked={settings.pushNotifications}
-                    onCheckedChange={(checked) => setSettings({ ...settings, pushNotifications: checked })}
+                    checked={settings.notifications.push}
+                    onCheckedChange={(checked) => 
+                      setSettings({
+                        ...settings,
+                        notifications: { ...settings.notifications, push: checked }
+                      })
+                    }
                   />
                 </div>
 
-                <Separator />
-
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Relatórios Semanais</Label>
-                    <p className="text-sm text-muted-foreground">Resumo semanal de atividades por email</p>
+                    <Label className="text-base">Atualizações de Leads</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Notificar quando houver mudanças nos leads
+                    </div>
                   </div>
                   <Switch
-                    checked={settings.weeklyReports}
-                    onCheckedChange={(checked) => setSettings({ ...settings, weeklyReports: checked })}
+                    checked={settings.notifications.lead_updates}
+                    onCheckedChange={(checked) => 
+                      setSettings({
+                        ...settings,
+                        notifications: { ...settings.notifications, lead_updates: checked }
+                      })
+                    }
                   />
                 </div>
 
-                <Separator />
-
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Alertas de Leads</Label>
-                    <p className="text-sm text-muted-foreground">Notificar sobre novos leads e mudanças</p>
+                    <Label className="text-base">Vendas Fechadas</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Notificar quando uma venda for concluída
+                    </div>
                   </div>
                   <Switch
-                    checked={settings.leadAlerts}
-                    onCheckedChange={(checked) => setSettings({ ...settings, leadAlerts: checked })}
-                  />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Alertas de Metas</Label>
-                    <p className="text-sm text-muted-foreground">Notificar sobre progresso das metas</p>
-                  </div>
-                  <Switch
-                    checked={settings.goalAlerts}
-                    onCheckedChange={(checked) => setSettings({ ...settings, goalAlerts: checked })}
+                    checked={settings.notifications.deal_closed}
+                    onCheckedChange={(checked) => 
+                      setSettings({
+                        ...settings,
+                        notifications: { ...settings.notifications, deal_closed: checked }
+                      })
+                    }
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={() => handleSave("notificações")} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Salvar Alterações
-                </Button>
-              </div>
+              <Button onClick={handleSaveSettings}>
+                Salvar Preferências
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="security" className="space-y-6">
-          <Card className="shadow-metric">
+        <TabsContent value="security" className="space-y-4">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Segurança e Privacidade
+                Segurança
               </CardTitle>
               <CardDescription>
-                Configure as opções de segurança da sua conta
+                Gerencie suas configurações de segurança e privacidade
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Autenticação de Dois Fatores</Label>
-                    <p className="text-sm text-muted-foreground">Adicione uma camada extra de segurança</p>
+                <div>
+                  <Label className="text-base">Informações da Conta</Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <div>
+                        <div className="font-medium">{profile.full_name}</div>
+                        <div className="text-sm text-muted-foreground">{profile.email}</div>
+                      </div>
+                      <Badge variant="outline">{profile.role}</Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={settings.twoFactorAuth}
-                      onCheckedChange={(checked) => setSettings({ ...settings, twoFactorAuth: checked })}
-                    />
-                    {settings.twoFactorAuth && <Badge className="bg-success text-success-foreground">Ativo</Badge>}
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <Label htmlFor="sessionTimeout">Timeout de Sessão (minutos)</Label>
-                  <Select value={settings.sessionTimeout} onValueChange={(value) => setSettings({ ...settings, sessionTimeout: value })}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 minutos</SelectItem>
-                      <SelectItem value="30">30 minutos</SelectItem>
-                      <SelectItem value="60">1 hora</SelectItem>
-                      <SelectItem value="240">4 horas</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dataRetention">Retenção de Dados (dias)</Label>
-                  <Select value={settings.dataRetention} onValueChange={(value) => setSettings({ ...settings, dataRetention: value })}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="90">90 dias</SelectItem>
-                      <SelectItem value="180">180 dias</SelectItem>
-                      <SelectItem value="365">1 ano</SelectItem>
-                      <SelectItem value="1095">3 anos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <h4 className="font-semibold text-destructive mb-2">Zona de Perigo</h4>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Ações irreversíveis que afetam permanentemente sua conta.
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="destructive" size="sm">
-                    Resetar Configurações
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-destructive text-destructive">
-                    Excluir Conta
+                  <Label className="text-base">Alterar Senha</Label>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Clique no botão abaixo para receber um link de redefinição de senha por email
+                  </div>
+                  <Button variant="outline" onClick={handleChangePassword}>
+                    Enviar Link de Redefinição
                   </Button>
                 </div>
-              </div>
 
-              <div className="flex justify-end">
-                <Button onClick={() => handleSave("segurança")} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Salvar Alterações
-                </Button>
+                <div className="space-y-2">
+                  <Label className="text-base">Sessões Ativas</Label>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Gerencie onde você está conectado
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">Navegador Atual</div>
+                        <div className="text-sm text-muted-foreground">Última atividade: agora</div>
+                      </div>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Ativo
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="system" className="space-y-6">
-          <Card className="shadow-metric">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Sistema e Aparência
-              </CardTitle>
-              <CardDescription>
-                Configure a aparência e comportamento do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="theme">Tema</Label>
-                  <Select value={settings.theme} onValueChange={(value) => setSettings({ ...settings, theme: value })}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Claro</SelectItem>
-                      <SelectItem value="dark">Escuro</SelectItem>
-                      <SelectItem value="system">Sistema</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Auto-salvamento</Label>
-                    <p className="text-sm text-muted-foreground">Salvar automaticamente alterações</p>
-                  </div>
-                  <Switch
-                    checked={settings.autoSave}
-                    onCheckedChange={(checked) => setSettings({ ...settings, autoSave: checked })}
-                  />
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <Label htmlFor="backupFrequency">Frequência de Backup</Label>
-                  <Select value={settings.backupFrequency} onValueChange={(value) => setSettings({ ...settings, backupFrequency: value })}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hourly">A cada hora</SelectItem>
-                      <SelectItem value="daily">Diário</SelectItem>
-                      <SelectItem value="weekly">Semanal</SelectItem>
-                      <SelectItem value="monthly">Mensal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={() => handleSave("sistema")} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Salvar Alterações
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="data" className="space-y-6">
-          <Card className="shadow-metric">
+        <TabsContent value="advanced" className="space-y-4">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Gerenciamento de Dados
+                Configurações Avançadas
               </CardTitle>
               <CardDescription>
-                Importe, exporte e gerencie seus dados
+                Configurações para usuários avançados e administradores
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <h4 className="font-semibold">Exportar Dados</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Faça download de todos os seus dados em formato CSV
-                  </p>
-                  <div className="space-y-2">
-                    <Button onClick={handleExportData} className="w-full gap-2">
-                      <Download className="h-4 w-4" />
-                      Exportar Leads
-                    </Button>
-                    <Button onClick={handleExportData} variant="outline" className="w-full gap-2">
-                      <Download className="h-4 w-4" />
-                      Exportar Transações
-                    </Button>
-                    <Button onClick={handleExportData} variant="outline" className="w-full gap-2">
-                      <Download className="h-4 w-4" />
-                      Exportar Relatórios
-                    </Button>
+            <CardContent className="space-y-4">
+              {profile.role === 'admin' && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="h-5 w-5 text-blue-600" />
+                      <Label className="text-base font-medium text-blue-900">Configurações de Administrador</Label>
+                    </div>
+                    <div className="text-sm text-blue-700 mb-3">
+                      Como administrador, você tem acesso a configurações especiais do sistema
+                    </div>
+                    <div className="space-y-2">
+                      <Button variant="outline" size="sm">
+                        Gerenciar Usuários
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        Configurações do Sistema
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        Logs de Auditoria
+                      </Button>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                <div className="space-y-3">
-                  <h4 className="font-semibold">Importar Dados</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Faça upload de dados de outras plataformas
-                  </p>
-                  <div className="space-y-2">
-                    <Button onClick={handleImportData} variant="outline" className="w-full gap-2">
-                      <Upload className="h-4 w-4" />
-                      Importar Leads (CSV)
-                    </Button>
-                    <Button onClick={handleImportData} variant="outline" className="w-full gap-2">
-                      <Upload className="h-4 w-4" />
-                      Importar Contatos
-                    </Button>
-                  </div>
+              <div className="space-y-2">
+                <Label className="text-base">Exportar Dados</Label>
+                <div className="text-sm text-muted-foreground mb-2">
+                  Baixe uma cópia dos seus dados pessoais
                 </div>
+                <Button variant="outline">
+                  Solicitar Exportação
+                </Button>
               </div>
 
-              <Separator />
-
-              <div className="space-y-3">
-                <h4 className="font-semibold">Estatísticas de Dados</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-2xl font-bold text-chart-primary">234</div>
-                    <div className="text-sm text-muted-foreground">Leads</div>
-                  </div>
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-2xl font-bold text-chart-secondary">45</div>
-                    <div className="text-sm text-muted-foreground">Transações</div>
-                  </div>
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-2xl font-bold text-success">12</div>
-                    <div className="text-sm text-muted-foreground">Usuários</div>
-                  </div>
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-2xl font-bold text-warning">2.3 GB</div>
-                    <div className="text-sm text-muted-foreground">Armazenamento</div>
-                  </div>
+              <div className="space-y-2">
+                <Label className="text-base text-red-600">Zona de Perigo</Label>
+                <div className="text-sm text-muted-foreground mb-2">
+                  Ações irreversíveis que afetam sua conta
                 </div>
+                <Button variant="destructive" disabled>
+                  Excluir Conta
+                </Button>
               </div>
             </CardContent>
           </Card>

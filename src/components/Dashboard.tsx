@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Users, 
   Target, 
@@ -45,7 +47,7 @@ interface Lead {
   company: string;
   email: string;
   phone: string;
-  status: "novo" | "contato" | "negociacao" | "fechado";
+  status: "novo" | "contato" | "negociacao" | "fechado" | "perdido";
   stage: "prospeccao" | "diagnostico" | "negociacao" | "fechamento" | "c7";
   value: number;
   responsible: string;
@@ -60,73 +62,83 @@ export function Dashboard() {
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [activeView, setActiveView] = useState<"dashboard" | "leads" | "kanban" | "goals" | "financial" | "reports" | "settings" | "profile" | "members" | "calendar">("dashboard");
   const [leadsView, setLeadsView] = useState<"table" | "kanban">("table");
-  const [leads, setLeads] = useState<Lead[]>([
-    {
-      id: "1",
-      name: "João Silva",
-      company: "Tech Solutions",
-      email: "joao@techsolutions.com",
-      phone: "(11) 9999-9999",
-      status: "negociacao",
-      stage: "negociacao",
-      value: 15000,
-      responsible: "Ana Costa",
-      lastUpdate: "2 horas atrás",
-      daysInStage: 5
-    },
-    {
-      id: "2",
-      name: "Maria Santos",
-      company: "Digital Corp",
-      email: "maria@digitalcorp.com",
-      phone: "(11) 8888-8888",
-      status: "contato",
-      stage: "diagnostico",
-      value: 25000,
-      responsible: "Carlos Lima",
-      lastUpdate: "1 dia atrás",
-      daysInStage: 12
-    },
-    {
-      id: "3",
-      name: "Pedro Oliveira",
-      company: "StartupX",
-      email: "pedro@startupx.com",
-      phone: "(11) 7777-7777",
-      status: "fechado",
-      stage: "c7",
-      value: 30000,
-      responsible: "Ana Costa",
-      lastUpdate: "3 dias atrás",
-      daysInStage: 2
-    },
-    {
-      id: "4",
-      name: "Fernanda Costa",
-      company: "Inovação Tech",
-      email: "fernanda@inovacaotech.com",
-      phone: "(11) 6666-6666",
-      status: "novo",
-      stage: "prospeccao",
-      value: 18000,
-      responsible: "Beatriz Santos",
-      lastUpdate: "1 hora atrás",
-      daysInStage: 1
-    },
-    {
-      id: "5",
-      name: "Roberto Lima",
-      company: "Future Systems",
-      email: "roberto@futuresystems.com",
-      phone: "(11) 5555-5555",
-      status: "contato",
-      stage: "diagnostico",
-      value: 22000,
-      responsible: "Rafael Oliveira",
-      lastUpdate: "6 horas atrás",
-      daysInStage: 8
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profile) {
+          setCurrentUser({
+            name: profile.full_name,
+            email: profile.email,
+            role: profile.role
+          });
+          setIsLoggedIn(true);
+          loadLeads();
+        }
+      }
+      setLoading(false);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        setLeads([]);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadLeads = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          responsible:profiles(full_name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedLeads: Lead[] = data?.map(lead => ({
+        id: lead.id,
+        name: lead.name,
+        company: lead.company_name || 'Sem empresa',
+        email: lead.email,
+        phone: lead.phone || '',
+        status: lead.status as "novo" | "contato" | "negociacao" | "fechado" | "perdido",
+        stage: lead.stage as "prospeccao" | "diagnostico" | "negociacao" | "fechamento" | "c7",
+        value: Number(lead.value),
+        responsible: lead.responsible?.full_name || 'Não atribuído',
+        lastUpdate: new Date(lead.updated_at).toLocaleDateString('pt-BR'),
+        daysInStage: lead.days_in_stage
+      })) || [];
+
+      setLeads(formattedLeads);
+    } catch (error) {
+      console.error('Error loading leads:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível carregar os leads.",
+      });
     }
-  ]);
+  };
 
   const metrics = {
     totalLeads: leads.length,
@@ -135,18 +147,62 @@ export function Dashboard() {
     goalProgress: 78.2
   };
 
-  const addLead = (leadData: Omit<Lead, "id" | "lastUpdate" | "daysInStage">) => {
-    const newLead: Lead = {
-      ...leadData,
-      id: Date.now().toString(),
-      lastUpdate: "Agora",
-      daysInStage: 0
-    };
-    setLeads([newLead, ...leads]);
+  const addLead = async (leadData: Omit<Lead, "id" | "lastUpdate" | "daysInStage">) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('leads')
+        .insert({
+          name: leadData.name,
+          email: leadData.email,
+          phone: leadData.phone,
+          company_name: leadData.company,
+          status: leadData.status,
+          stage: leadData.stage,
+          value: leadData.value,
+          responsible_id: user.id,
+          days_in_stage: 0
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Lead criado!",
+        description: "O lead foi adicionado com sucesso.",
+      });
+
+      loadLeads(); // Reload leads
+    } catch (error) {
+      console.error('Error adding lead:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível adicionar o lead.",
+      });
+    }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-dashboard-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl font-bold text-foreground mb-4">ETECH Jr.</div>
+          <div className="text-muted-foreground">Carregando...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
-    return <Login onLogin={(user) => { setCurrentUser(user); setIsLoggedIn(true); }} />;
+    return <Login onLogin={(user) => { setCurrentUser(user); setIsLoggedIn(true); loadLeads(); }} />;
   }
 
   const renderContent = () => {
@@ -244,7 +300,7 @@ export function Dashboard() {
       <Header 
         onNewLead={() => setShowLeadModal(true)} 
         onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        onLogout={() => setIsLoggedIn(false)}
+        onLogout={handleLogout}
       />
       
       <div className="flex">
